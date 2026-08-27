@@ -22,10 +22,10 @@ contract NovaAssetsTest is Test {
     bytes32 internal constant AURORA = bytes32("aurora");
 
     function setUp() public {
-        vm.prank(admin);
+        vm.startPrank(admin);
         assets = new NovaAssets(admin, "https://api.nova.example/asset/");
-        vm.prank(admin);
         assets.grantRole(NovaRoles.MINTER_ROLE, minter);
+        vm.stopPrank();
     }
 
     function _mintToAlice() internal returns (uint256) {
