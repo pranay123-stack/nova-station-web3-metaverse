@@ -34,6 +34,8 @@ jobs:
         with: { version: 9.15.9 }
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: pnpm }
+      # `pnpm typecheck` includes @nova/contracts, whose typecheck is `forge build`.
+      - uses: foundry-rs/foundry-toolchain@v1
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:packages
       - run: pnpm typecheck
@@ -83,6 +85,10 @@ jobs:
   build:
     name: Production build
     runs-on: ubuntu-latest
+    # `prisma generate` reads the datasource url, so it has to be set even
+    # though this job never opens a connection.
+    env:
+      DATABASE_URL: postgresql://nova:nova@localhost:5491/nova_station_build
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
