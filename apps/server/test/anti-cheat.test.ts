@@ -71,7 +71,8 @@ describe('anti-cheat', () => {
         holdTicks: MINING_MINIGAME.extractSec * MINING_MINIGAME.tickHz,
       },
     );
-    const honestTotal = honest.body.result.yields.reduce((sum, y) => sum + y.amount, 0);
+    expect(honest.status).toBe(200);
+    const honestMultiplier = honest.body.result.multiplier;
 
     await prisma().expedition.updateMany({ data: { status: 'complete' } });
     const cheatId = await launchAndLand(player);
@@ -95,11 +96,16 @@ describe('anti-cheat', () => {
     );
     expect(cheat.status).toBe(200);
 
-    // A client claiming a superhuman score gets exactly what a perfect human run gets.
+    // A client claiming a superhuman score gets exactly what a perfect human run
+    // gets: `accepted = min(claimed, elapsed * tickHz)`, so both runs land on
+    // accuracy 1.0 and therefore the same bounded multiplier.
+    //
+    // The multiplier is the right thing to assert on, not the absolute haul.
+    // Amounts are drawn from a per-expedition seed, and rarer resources come out
+    // in smaller quantities for the same beam time, so two different expeditions
+    // legitimately differ in total units while both being perfectly played.
     expect(cheat.body.result.multiplier).toBeLessThanOrEqual(MINING_MINIGAME.maxMultiplier);
-    expect(cheat.body.result.yields.reduce((sum, y) => sum + y.amount, 0)).toBeLessThanOrEqual(
-      honestTotal * 1.2,
-    );
+    expect(cheat.body.result.multiplier).toBe(honestMultiplier);
   });
 
   it('rejects a negative or fractional minigame score outright', async () => {

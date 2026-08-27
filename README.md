@@ -5,8 +5,9 @@ station, take contracts from three rival factions, fly out to the belt and work 
 your own hands, refine what you bring back, craft, trade — and own the rare part of it on chain.
 
 Built with Next.js, React Three Fiber and Three.js on the front, an authoritative Fastify + Prisma
-game server behind it, and OpenZeppelin contracts on Sepolia for the parts where ownership actually
-matters.
+game server behind it, and OpenZeppelin contracts targeting Sepolia for the parts where ownership
+actually matters. The contracts run against a local chain today; Sepolia deployment needs a funded
+key, which this repository does not contain — see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ```
 Connect wallet → Create avatar → Enter station → Explore → Mine → Contracts
