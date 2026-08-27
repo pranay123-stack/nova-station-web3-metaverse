@@ -1,0 +1,23 @@
+{
+  "name": "@nova/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } },
+  "files": ["dist"],
+  "scripts": {
+    "build": "node ../../scripts/export-contract-artifacts.mjs && tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src test"
+  },
+  "dependencies": {
+    "@nova/game-data": "workspace:*",
+    "@nova/game-engine": "workspace:*",
+    "zod": "4.4.3"
+  },
+  "devDependencies": { "typescript": "5.9.3", "vitest": "4.1.11" }
+}

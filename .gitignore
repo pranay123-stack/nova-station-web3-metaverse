@@ -1,0 +1,23 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+!.env.example
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+test-results/
+playwright-report/
+blob-report/
+.DS_Store
+*.log
+
+# local run artefacts
+contracts/deployments/31337.json
+apps/web/next-env.d.ts

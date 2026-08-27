@@ -1,0 +1,45 @@
+{
+  "name": "nova-station",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NOVA STATION \u2014 a production-grade browser-based 3D Web3 space station metaverse.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.11.0",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "build": "pnpm build:packages && pnpm --filter @nova/server build && pnpm --filter @nova/web build",
+    "build:packages": "pnpm --filter @nova/game-data build && pnpm --filter @nova/game-engine build && pnpm --filter @nova/shared build && pnpm --filter @nova/web3 build && pnpm --filter @nova/ui build",
+    "dev": "pnpm build:packages && concurrently -n server,web -c cyan,magenta \"pnpm --filter @nova/server dev\" \"pnpm --filter @nova/web dev\"",
+    "dev:server": "pnpm --filter @nova/server dev",
+    "dev:web": "pnpm --filter @nova/web dev",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,md,yml,yaml}\"",
+    "test": "pnpm test:unit && pnpm test:contracts",
+    "test:unit": "pnpm --filter @nova/game-data test && pnpm --filter @nova/game-engine test && pnpm --filter @nova/shared test && pnpm --filter @nova/web3 test && pnpm --filter @nova/server test && pnpm --filter @nova/web test",
+    "test:contracts": "pnpm --filter @nova/contracts test",
+    "test:e2e": "pnpm --filter @nova/web test:e2e",
+    "db:up": "docker compose -f infra/docker-compose.yml up -d",
+    "db:down": "docker compose -f infra/docker-compose.yml down",
+    "db:migrate": "pnpm --filter @nova/server db:migrate",
+    "db:seed": "pnpm --filter @nova/server db:seed",
+    "db:studio": "pnpm --filter @nova/server db:studio",
+    "chain:node": "pnpm --filter @nova/contracts node",
+    "chain:deploy:local": "pnpm --filter @nova/contracts deploy:local",
+    "chain:deploy:sepolia": "pnpm --filter @nova/contracts deploy:sepolia",
+    "verify:all": "bash scripts/verify-all.sh"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/node": "22.20.1",
+    "concurrently": "10.0.5",
+    "eslint": "9.39.5",
+    "prettier": "3.9.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.68.0"
+  }
+}
