@@ -1,0 +1,265 @@
+import type { RecipeDef } from './types.js';
+
+/**
+ * Crafting recipes. Every craft is resolved on the server inside a database
+ * transaction: inputs are debited, the bench is occupied for `durationSec`, and
+ * only then is the output minted into the player's inventory.
+ */
+export const RECIPES: readonly RecipeDef[] = [
+  {
+    id: 'recipe_mining_laser_i',
+    name: 'Mining Laser I',
+    description: 'A serviceable extraction beam built from stock parts.',
+    inputs: [
+      { resource: 'iron', amount: 30 },
+      { resource: 'titanium', amount: 10 },
+    ],
+    creditCost: 400,
+    output: { kind: 'module', id: 'mining_laser_i', amount: 1 },
+    durationSec: 45,
+    requiredLevel: 2,
+    station: 'lab',
+    bonusChance: 0.05,
+  },
+  {
+    id: 'recipe_mining_laser_ii',
+    name: 'Advanced Mining Laser',
+    description: 'Resonance-tuned optics around a titanium focusing cage.',
+    inputs: [
+      { resource: 'titanium', amount: 20 },
+      { resource: 'crystal', amount: 5 },
+      { resource: 'quantum_shard', amount: 1 },
+    ],
+    creditCost: 3200,
+    output: { kind: 'module', id: 'mining_laser_ii', amount: 1 },
+    durationSec: 240,
+    requiredLevel: 8,
+    station: 'lab',
+    bonusChance: 0.08,
+  },
+  {
+    id: 'recipe_harmonic_extractor',
+    name: 'Harmonic Extractor',
+    description: 'Phase-locked drill head. Requires Federation research clearance.',
+    inputs: [
+      { resource: 'platinum', amount: 40 },
+      { resource: 'crystal', amount: 30 },
+      { resource: 'helium3', amount: 12 },
+      { resource: 'quantum_shard', amount: 6 },
+    ],
+    creditCost: 24000,
+    output: { kind: 'module', id: 'harmonic_extractor', amount: 1 },
+    durationSec: 900,
+    requiredLevel: 18,
+    station: 'lab',
+    requiredFaction: { faction: 'federation', rank: 4 },
+    bonusChance: 0.02,
+  },
+  {
+    id: 'recipe_cargo_expander',
+    name: 'Cargo Expander',
+    description: 'Folded bracing struts for the hold.',
+    inputs: [
+      { resource: 'iron', amount: 60 },
+      { resource: 'titanium', amount: 24 },
+    ],
+    creditCost: 900,
+    output: { kind: 'module', id: 'cargo_expander', amount: 1 },
+    durationSec: 90,
+    requiredLevel: 4,
+    station: 'lab',
+    bonusChance: 0.05,
+  },
+  {
+    id: 'recipe_cargo_singularity',
+    name: 'Singularity Hold',
+    description: 'A contained gravity well. Handle the paperwork before the hardware.',
+    inputs: [
+      { resource: 'titanium', amount: 80 },
+      { resource: 'platinum', amount: 30 },
+      { resource: 'quantum_shard', amount: 3 },
+    ],
+    creditCost: 14000,
+    output: { kind: 'module', id: 'cargo_singularity', amount: 1 },
+    durationSec: 600,
+    requiredLevel: 14,
+    station: 'lab',
+    bonusChance: 0.04,
+  },
+  {
+    id: 'recipe_ion_thruster',
+    name: 'Ion Thruster',
+    description: 'Efficient low-thrust drive cluster.',
+    inputs: [
+      { resource: 'iron', amount: 40 },
+      { resource: 'titanium', amount: 18 },
+      { resource: 'crystal', amount: 2 },
+    ],
+    creditCost: 1100,
+    output: { kind: 'module', id: 'ion_thruster', amount: 1 },
+    durationSec: 120,
+    requiredLevel: 5,
+    station: 'lab',
+    bonusChance: 0.05,
+  },
+  {
+    id: 'recipe_fusion_drive',
+    name: 'Fusion Drive',
+    description: 'Helium-3 burner with a platinum catalytic core.',
+    inputs: [
+      { resource: 'titanium', amount: 60 },
+      { resource: 'platinum', amount: 24 },
+      { resource: 'helium3', amount: 20 },
+    ],
+    creditCost: 11000,
+    output: { kind: 'module', id: 'fusion_drive', amount: 1 },
+    durationSec: 480,
+    requiredLevel: 12,
+    station: 'lab',
+    bonusChance: 0.04,
+  },
+  {
+    id: 'recipe_deflector_i',
+    name: 'Deflector Array',
+    description: 'Basic hazard shielding.',
+    inputs: [
+      { resource: 'iron', amount: 35 },
+      { resource: 'crystal', amount: 3 },
+    ],
+    creditCost: 600,
+    output: { kind: 'module', id: 'deflector_i', amount: 1 },
+    durationSec: 60,
+    requiredLevel: 3,
+    station: 'lab',
+    bonusChance: 0.05,
+  },
+  {
+    id: 'recipe_aegis_shield',
+    name: 'Aegis Barrier',
+    description: 'Layered Federation shielding. Rated for the Rift.',
+    inputs: [
+      { resource: 'titanium', amount: 45 },
+      { resource: 'platinum', amount: 18 },
+      { resource: 'crystal', amount: 14 },
+    ],
+    creditCost: 6800,
+    output: { kind: 'module', id: 'aegis_shield', amount: 1 },
+    durationSec: 300,
+    requiredLevel: 10,
+    station: 'lab',
+    bonusChance: 0.05,
+  },
+  {
+    id: 'recipe_survey_scanner',
+    name: 'Survey Scanner',
+    description: 'Wide-band sensor package.',
+    inputs: [
+      { resource: 'iron', amount: 25 },
+      { resource: 'crystal', amount: 8 },
+    ],
+    creditCost: 1000,
+    output: { kind: 'module', id: 'survey_scanner', amount: 1 },
+    durationSec: 100,
+    requiredLevel: 5,
+    station: 'lab',
+    bonusChance: 0.06,
+  },
+  {
+    id: 'recipe_deep_scanner',
+    name: 'Deep-Field Scanner',
+    description: 'Quantum-coupled sensor array.',
+    inputs: [
+      { resource: 'crystal', amount: 40 },
+      { resource: 'helium3', amount: 10 },
+      { resource: 'quantum_shard', amount: 2 },
+    ],
+    creditCost: 13500,
+    output: { kind: 'module', id: 'deep_scanner', amount: 1 },
+    durationSec: 540,
+    requiredLevel: 13,
+    station: 'lab',
+    bonusChance: 0.04,
+  },
+  {
+    id: 'recipe_pulse_cannon',
+    name: 'Pulse Cannon',
+    description: 'Point-defence turret. Syndicate blueprints, Helix parts.',
+    inputs: [
+      { resource: 'titanium', amount: 50 },
+      { resource: 'platinum', amount: 14 },
+      { resource: 'helium3', amount: 6 },
+    ],
+    creditCost: 5200,
+    output: { kind: 'module', id: 'pulse_cannon', amount: 1 },
+    durationSec: 300,
+    requiredLevel: 11,
+    station: 'lab',
+    requiredFaction: { faction: 'void', rank: 2 },
+    bonusChance: 0.05,
+  },
+  {
+    id: 'recipe_portable_refiner',
+    name: 'Portable Refiner',
+    description: 'Field assay unit for squeezing extra yield out of raw ore.',
+    inputs: [
+      { resource: 'titanium', amount: 30 },
+      { resource: 'platinum', amount: 10 },
+      { resource: 'crystal', amount: 6 },
+    ],
+    creditCost: 4200,
+    output: { kind: 'equipment', id: 'tool_refiner', amount: 1 },
+    durationSec: 240,
+    requiredLevel: 9,
+    station: 'lab',
+    bonusChance: 0.03,
+  },
+  {
+    id: 'recipe_voidwalker_shell',
+    name: 'Voidwalker Shell',
+    description: 'Syndicate pressure shell. Ask no questions about the plating.',
+    inputs: [
+      { resource: 'titanium', amount: 55 },
+      { resource: 'platinum', amount: 22 },
+      { resource: 'helium3', amount: 8 },
+    ],
+    creditCost: 9800,
+    output: { kind: 'equipment', id: 'suit_voidwalker', amount: 1 },
+    durationSec: 420,
+    requiredLevel: 12,
+    station: 'lab',
+    requiredFaction: { faction: 'void', rank: 3 },
+    bonusChance: 0.03,
+  },
+  {
+    id: 'recipe_circuit_pattern',
+    name: 'Circuit Bloom Weave',
+    description: 'A suit finish that carries a live current. Purely decorative, entirely showy.',
+    inputs: [
+      { resource: 'crystal', amount: 18 },
+      { resource: 'quantum_shard', amount: 1 },
+    ],
+    creditCost: 2400,
+    output: { kind: 'cosmetic', id: 'pattern_circuit', amount: 1 },
+    durationSec: 180,
+    requiredLevel: 7,
+    station: 'lab',
+    bonusChance: 0.05,
+  },
+];
+
+export const RECIPES_BY_ID: ReadonlyMap<string, RecipeDef> = new Map(RECIPES.map((r) => [r.id, r]));
+
+/**
+ * Refining converts raw ore into credits at the Mining Bay. It is the primary
+ * credit *source* in the game and the main reason to return to the station.
+ */
+export const REFINERY = {
+  /** Fraction of base value returned when refining, before equipment bonuses. */
+  baseYield: 0.62,
+  /** Seconds per unit of ore processed. */
+  secPerUnit: 0.35,
+  /** Maximum units in a single batch. */
+  maxBatch: 500,
+  /** XP granted per credit of refined value. */
+  xpPerCredit: 0.05,
+} as const;

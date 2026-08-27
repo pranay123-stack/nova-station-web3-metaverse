@@ -1,0 +1,21 @@
+{
+  "name": "@nova/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test -vv",
+    "test:gas": "forge test --gas-report",
+    "coverage": "forge coverage --report summary",
+    "fmt": "forge fmt",
+    "typecheck": "forge build --sizes",
+    "lint": "forge fmt --check",
+    "node": "anvil --host 127.0.0.1 --chain-id 31337 --port 8545",
+    "deploy:local": "bash script/deploy-local.sh",
+    "deploy:sepolia": "bash script/deploy-sepolia.sh"
+  },
+  "devDependencies": {
+    "@openzeppelin/contracts": "5.6.1",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.6"
+  }
+}

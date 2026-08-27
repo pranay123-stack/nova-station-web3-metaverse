@@ -1,0 +1,544 @@
+// NOVA STATION — authoritative game database.
+//
+// Every value a player could profit from lives here and is written only by the
+// server, inside a transaction. The client holds a mirror of this state for
+// rendering; it is never the source of truth for any of it.
+
+generator client {
+  // Generated into the source tree rather than node_modules: pnpm's strict
+  // module layout leaves the default location unable to resolve its runtime.
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+// Prisma 7 takes the connection URL from `prisma.config.ts` for migrations and
+// from the driver adapter passed to `PrismaClient` at runtime, never from here.
+datasource db {
+  provider = "postgresql"
+}
+
+/**
+ * ------------------------------------------------------------- identity
+ */
+
+model User {
+  id          String   @id @default(uuid())
+  /// Lowercase 0x address. The wallet is the account.
+  address     String   @unique
+  displayName String
+  createdAt   DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+  playtimeSec Int      @default(0)
+
+  level   Int    @default(1)
+  xp      Int    @default(0)
+  credits BigInt @default(0)
+  health  Int    @default(100)
+  energy  Int    @default(100)
+
+  primaryFaction String?
+
+  missionsCompleted Int    @default(0)
+  resourcesMined    BigInt @default(0)
+  creditsEarned     BigInt @default(0)
+  itemsCrafted      Int    @default(0)
+  expeditionsDone   Int    @default(0)
+  tradesDone        Int    @default(0)
+  distanceWalked    Int    @default(0)
+
+  /// Soft ban. A banned account can authenticate but cannot act.
+  banned    Boolean @default(false)
+  banReason String?
+
+  avatar            Avatar?
+  sessions          Session[]
+  inventory         InventoryItem[]
+  ships             Ship[]
+  factions          PlayerFaction[]
+  missions          PlayerMission[]
+  achievements      PlayerAchievement[]
+  expeditions       Expedition[]
+  crafts            CraftJob[]
+  listings          MarketplaceListing[] @relation("listingSeller")
+  purchases         MarketplaceListing[] @relation("listingBuyer")
+  chainTransactions ChainTransaction[]
+  sentRequests      Friendship[]         @relation("friendRequester")
+  receivedRequests  Friendship[]         @relation("friendAddressee")
+  chatMessages      ChatMessage[]        @relation("chatAuthor")
+  directMessages    ChatMessage[]        @relation("chatRecipient")
+  playSessions      PlayerSession[]
+  areaVisits        AreaVisit[]
+  ledger            LedgerEntry[]
+
+  @@index([level(sort: Desc)])
+  @@index([lastSeenAt(sort: Desc)])
+  @@index([credits(sort: Desc)])
+}
+
+model Avatar {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  suitId         String   @default("suit_standard")
+  helmetId       String   @default("helmet_standard")
+  suitPattern    String   @default("pattern_plain")
+  visor          String   @default("visor_ice")
+  emblem         String   @default("emblem_federation")
+  accessory      String   @default("accessory_pack")
+  primaryColor   String   @default("#38bdf8")
+  secondaryColor String   @default("#0f172a")
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Single-use SIWE nonce. Rows are consumed on verify and swept on expiry.
+model AuthNonce {
+  id        String    @id @default(uuid())
+  address   String
+  nonce     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([address])
+  @@index([expiresAt])
+}
+
+/// An authenticated session. Only the SHA-256 of the token is stored, so a
+/// database leak does not hand out live sessions.
+model Session {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  issuedAt  DateTime  @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+  ip        String?
+  userAgent String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/**
+ * -------------------------------------------------------- reference data
+ */
+
+model Resource {
+  id        String @id
+  name      String
+  rarity    String
+  baseValue Int
+  weight    Float
+}
+
+model Faction {
+  id      String          @id
+  name    String
+  motto   String
+  players PlayerFaction[]
+}
+
+model Mission {
+  id         String          @id
+  code       Int             @unique
+  title      String
+  type       String
+  difficulty Int
+  faction    String
+  players    PlayerMission[]
+}
+
+model Achievement {
+  id          String              @id
+  name        String
+  description String
+  points      Int
+  players     PlayerAchievement[]
+}
+
+model StationArea {
+  id            String      @id
+  name          String
+  requiredLevel Int         @default(0)
+  visits        AreaVisit[]
+}
+
+/**
+ * ------------------------------------------------------------- inventory
+ */
+
+model InventoryItem {
+  id        String   @id @default(uuid())
+  userId    String
+  /// resource | module | equipment | cosmetic
+  kind      String
+  defId     String
+  amount    Int      @default(0)
+  equipped  Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, defId])
+  @@index([userId, kind])
+}
+
+/**
+ * ----------------------------------------------------------------- ships
+ */
+
+model Ship {
+  id         String   @id @default(uuid())
+  userId     String
+  defId      String
+  name       String
+  active     Boolean  @default(false)
+  fuel       Float    @default(0)
+  /// Set when this hull is backed by an ERC-721 token.
+  tokenId    String?
+  acquiredAt DateTime @default(now())
+
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  upgrades    ShipUpgrade[]
+  modules     ShipModule[]
+  expeditions Expedition[]
+
+  @@unique([userId, tokenId])
+  @@index([userId])
+}
+
+model ShipUpgrade {
+  id     String @id @default(uuid())
+  shipId String
+  stat   String
+  tier   Int    @default(0)
+
+  ship Ship @relation(fields: [shipId], references: [id], onDelete: Cascade)
+
+  @@unique([shipId, stat])
+}
+
+model ShipModule {
+  id          String @id @default(uuid())
+  shipId      String
+  slotIndex   Int
+  moduleDefId String
+
+  ship Ship @relation(fields: [shipId], references: [id], onDelete: Cascade)
+
+  @@unique([shipId, slotIndex])
+}
+
+/**
+ * -------------------------------------------------------------- factions
+ */
+
+model PlayerFaction {
+  userId     String
+  factionId  String
+  reputation Int      @default(0)
+  updatedAt  DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  faction Faction @relation(fields: [factionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, factionId])
+  @@index([factionId, reputation(sort: Desc)])
+}
+
+/**
+ * -------------------------------------------------------------- missions
+ */
+
+enum MissionStatus {
+  active
+  complete
+  claimed
+  failed
+  abandoned
+  expired
+}
+
+model PlayerMission {
+  id          String        @id @default(uuid())
+  userId      String
+  missionId   String
+  status      MissionStatus @default(active)
+  /// One counter per objective, in the mission's objective order.
+  progress    Int[]
+  acceptedAt  DateTime      @default(now())
+  expiresAt   DateTime
+  completedAt DateTime?
+  claimedAt   DateTime?
+  /// Seed for the reward roll, fixed at accept time so the payout is auditable.
+  rewardSeed  BigInt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([userId, missionId, status])
+  @@index([expiresAt])
+}
+
+model PlayerAchievement {
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@id([userId, achievementId])
+}
+
+/**
+ * ------------------------------------------------------------ expeditions
+ */
+
+enum ExpeditionStatus {
+  travelling
+  active
+  returning
+  complete
+  aborted
+}
+
+model Expedition {
+  id           String           @id @default(uuid())
+  userId       String
+  shipId       String
+  zoneId       String
+  status       ExpeditionStatus @default(travelling)
+  startedAt    DateTime         @default(now())
+  arrivesAt    DateTime
+  endedAt      DateTime?
+  fuelAtStart  Float
+  fuelUsed     Float            @default(0)
+  cargoUsed    Float            @default(0)
+  /// Seed the client uses to lay out the asteroid field. Shared, not secret.
+  fieldSeed    Int
+  /// Private seed stream for yield rolls. Never leaves the server.
+  rollSeed     BigInt
+  rollCounter  Int              @default(0)
+  minedNodes   Int[]
+  scannedNodes Int[]
+  /// Accumulated haul, applied to the inventory only on a successful return.
+  haul         Json             @default("[]")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ship Ship @relation(fields: [shipId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+}
+
+/**
+ * -------------------------------------------------------------- crafting
+ */
+
+model CraftJob {
+  id        String   @id @default(uuid())
+  userId    String
+  recipeId  String
+  startedAt DateTime @default(now())
+  readyAt   DateTime
+  collected Boolean  @default(false)
+  seed      BigInt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, collected])
+}
+
+/**
+ * ----------------------------------------------------------- marketplace
+ */
+
+enum ListingStatus {
+  open
+  sold
+  cancelled
+}
+
+enum ListingCurrency {
+  credits
+  eth
+}
+
+model MarketplaceListing {
+  id        String          @id @default(uuid())
+  sellerId  String
+  buyerId   String?
+  kind      String
+  defId     String
+  amount    Int             @default(1)
+  /// Credits, or wei for on-chain listings. Stored as a string-safe BigInt.
+  price     BigInt
+  currency  ListingCurrency @default(credits)
+  status    ListingStatus   @default(open)
+  createdAt DateTime        @default(now())
+  soldAt    DateTime?
+
+  /// Set for listings mirrored from the on-chain marketplace.
+  chainListingId String? @unique
+  collection     String?
+  tokenId        String?
+  standard       String?
+
+  seller User  @relation("listingSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  buyer  User? @relation("listingBuyer", fields: [buyerId], references: [id])
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([status, price])
+  @@index([sellerId, status])
+  @@index([kind, status])
+}
+
+/**
+ * --------------------------------------------------------------- onchain
+ */
+
+model BlockchainAsset {
+  id         String   @id @default(uuid())
+  chainId    Int
+  collection String
+  tokenId    String
+  /// erc721 | erc1155
+  standard   String
+  owner      String
+  amount     String   @default("1")
+  kind       String
+  defId      String
+  lastBlock  BigInt   @default(0)
+  updatedAt  DateTime @updatedAt
+
+  @@unique([chainId, collection, tokenId, owner])
+  @@index([owner])
+  @@index([chainId, collection])
+}
+
+model ChainTransaction {
+  id          String    @id @default(uuid())
+  userId      String?
+  txHash      String    @unique
+  chainId     Int
+  intent      String
+  /// pending | confirmed | failed
+  status      String    @default("pending")
+  blockNumber BigInt?
+  createdAt   DateTime  @default(now())
+  confirmedAt DateTime?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status])
+}
+
+/// Per-contract indexer cursor, so a restart resumes where it left off.
+model IndexerCursor {
+  id        String   @id
+  chainId   Int
+  contract  String
+  lastBlock BigInt   @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([chainId, contract])
+}
+
+/**
+ * ---------------------------------------------------------------- social
+ */
+
+enum FriendStatus {
+  pending
+  accepted
+  declined
+  blocked
+}
+
+model Friendship {
+  id          String       @id @default(uuid())
+  requesterId String
+  addresseeId String
+  status      FriendStatus @default(pending)
+  createdAt   DateTime     @default(now())
+  respondedAt DateTime?
+
+  requester User @relation("friendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("friendAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId, status])
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  userId    String
+  toUserId  String?
+  channel   String
+  area      String?
+  text      String
+  createdAt DateTime @default(now())
+
+  user      User  @relation("chatAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  recipient User? @relation("chatRecipient", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@index([channel, createdAt(sort: Desc)])
+  @@index([toUserId, createdAt(sort: Desc)])
+}
+
+model PlayerSession {
+  id          String    @id @default(uuid())
+  userId      String
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+  durationSec Int       @default(0)
+  ip          String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt(sort: Desc)])
+}
+
+model AreaVisit {
+  userId         String
+  areaId         String
+  firstVisitedAt DateTime @default(now())
+  lastVisitedAt  DateTime @default(now())
+  visits         Int      @default(1)
+
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  area StationArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
+
+  @@id([userId, areaId])
+}
+
+/**
+ * ----------------------------------------------------------------- audit
+ */
+
+/// Append-only record of every credit movement.
+///
+/// The `credits` column on User is a cache of this ledger's running total.
+/// Keeping the journal makes an economy exploit visible after the fact and
+/// lets a balance be reconstructed from first principles.
+model LedgerEntry {
+  id           String   @id @default(uuid())
+  userId       String
+  /// mission | refine | craft | upgrade | broker | market | stipend | levelup | ship | fuel
+  kind         String
+  delta        BigInt
+  balanceAfter BigInt
+  reason       String
+  refId        String?
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([kind, createdAt(sort: Desc)])
+}

@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contracts:
+    name: Smart contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9.15.9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20.11.0, cache: pnpm }
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @nova/contracts build
+      - run: pnpm --filter @nova/contracts test
+      - run: pnpm --filter @nova/contracts lint
+
+  unit:
+    name: Types and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9.15.9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20.11.0, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:packages
+      - run: pnpm typecheck
+      - run: pnpm --filter @nova/game-data test
+      - run: pnpm --filter @nova/game-engine test
+      - run: pnpm --filter @nova/shared test
+      - run: pnpm --filter @nova/web3 test
+      - run: pnpm --filter @nova/web test
+
+  server:
+    name: Server integration tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: nova
+          POSTGRES_PASSWORD: nova
+          POSTGRES_DB: nova_station_test
+        ports: ['5491:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://nova:nova@localhost:5491/nova_station_test
+      NODE_ENV: test
+      SESSION_SECRET: ci-session-secret-key-that-is-long-enough-32
+      SIWE_DOMAIN: localhost:3300
+      PUBLIC_WEB_ORIGIN: http://localhost:3300
+      CHAIN_ID: '31337'
+      INDEXER_ENABLED: 'false'
+      AUTH_RATE_LIMIT_MAX: '100000'
+      RATE_LIMIT_MAX: '100000'
+      LOG_LEVEL: error
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9.15.9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20.11.0, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:packages
+      - run: pnpm --filter @nova/server db:deploy
+      - run: pnpm --filter @nova/server db:seed
+      - run: pnpm --filter @nova/server test
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9.15.9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20.11.0, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build

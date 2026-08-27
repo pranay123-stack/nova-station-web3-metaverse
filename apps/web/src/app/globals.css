@@ -1,0 +1,129 @@
+@import 'tailwindcss';
+
+/*
+ * Tailwind v4 auto-detects sources but skips node_modules — and @nova/ui is a
+ * workspace package symlinked in there. Without this, any class used *only*
+ * inside a shared component (the modal's scroll cap, the meter's segments)
+ * silently never gets generated, and the component renders unstyled.
+ */
+@source '../../../../packages/ui/src';
+
+/*
+ * NOVA STATION visual system.
+ *
+ * The palette is shared with the 3D world through @nova/ui's tokens, so a
+ * faction colour on a panel border is the same value as the light in that
+ * faction's sector.
+ */
+@theme {
+  --color-void: #05070d;
+  --color-hull: #0b1119;
+  --color-panel: #111a26;
+  --color-line: #233246;
+  --font-display: 'Chakra Petch', 'Rajdhani', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', ui-monospace, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+  background: #05070d;
+  color: #e7eefc;
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+}
+
+/* The game canvas fills the viewport and must never scroll. */
+body[data-game='true'] {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* Focus rings are visible and consistent everywhere: keyboard navigation is a
+   first-class way to use this interface, not an afterthought. */
+:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(56, 189, 248, 0.3);
+}
+
+/* Scrollbars styled to match the panels rather than the OS. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #233246 transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #233246;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #3a5170;
+}
+
+/* Every animation in the interface respects the OS preference. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Utility used by the landing page's scan-line treatment. */
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.025) 0px,
+    rgba(255, 255, 255, 0.025) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.grid-backdrop {
+  background-image:
+    linear-gradient(rgba(35, 50, 70, 0.35) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(35, 50, 70, 0.35) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 20%, transparent 72%);
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2.4s ease-in-out infinite;
+}
