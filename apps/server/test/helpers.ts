@@ -1,10 +1,14 @@
+import { fileURLToPath } from 'node:url';
 import { config as loadEnv } from 'dotenv';
 import { privateKeyToAccount, type PrivateKeyAccount } from 'viem/accounts';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { prisma } from '../src/db/client.js';
 
-loadEnv({ path: new URL('../.env.test', import.meta.url).pathname, override: true });
+// `fileURLToPath`, not `URL.pathname`: the latter is percent-encoded, so a
+// checkout under a path containing a space resolves to a file that does not
+// exist and dotenv fails silently, leaving DATABASE_URL undefined.
+loadEnv({ path: fileURLToPath(new URL('../.env.test', import.meta.url)), override: true });
 
 let app: FastifyInstance | null = null;
 
